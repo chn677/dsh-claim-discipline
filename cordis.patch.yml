@@ -1,5 +1,6 @@
-# @local/dsh-claim-discipline —— 把「断言纪律」常驻注入系统提示词。
-# 只有一条 insert 行；不给 config（本插件不声明 Config，也就不需要配置）。
+# @local/dsh-claim-discipline - inject the "claim discipline" section into the
+# system prompt as a standing row. A single insert row, no config (this plugin
+# declares no Config, so it needs none).
 - insert:
     - id: claim-discipline
       name: '@local/dsh-claim-discipline'

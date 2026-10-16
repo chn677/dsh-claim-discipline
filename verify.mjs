@@ -1,7 +1,7 @@
 /**
- * 唯一的一个可跑自检。把 index.js 当真模块加载，喂它一个假 ctx，
- * 断言它只注册一个 section 且字段形状合法。
- * 跑法:  node verify.mjs
+ * The one runnable check. Loads index.js as a real module, hands it a fake ctx,
+ * and asserts it registers exactly one section with a valid shape.
+ * Run:  node verify.mjs
  */
 import assert from 'node:assert/strict';
 import { name, inject, apply } from './index.js';
@@ -28,7 +28,8 @@ assert.ok(s.text.length > 100, 'text must be non-trivial');
 ['1.', '2.', '3.', '4.', '5.', '6.', '7.'].forEach((n) => {
   assert.ok(s.text.includes(n), 'missing rule ' + n);
 });
-// 段文本默认做变量插值，出现 {{...}} 会被替换掉 —— 本插件必须保持原样
+// Sections are variable-interpolated by default, so a {{...}} group would be
+// substituted - this payload must stay literal.
 assert.ok(!s.text.includes('{{'), 'text must not contain interpolation braces');
 
 console.log('verify OK: 1 section, order=' + s.order + ', ' + s.text.length + ' chars, 7 rules');

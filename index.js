@@ -1,31 +1,42 @@
 /**
  * @local/dsh-claim-discipline
  *
- * 只做一件事：往系统提示词里常驻注入一段「断言纪律」。
+ * Does exactly one thing: inject a standing "claim discipline" section into the
+ * system prompt.
  *
- * 规则不是拍脑袋写的，是按本机 2026-10-17 一次会话逐轮审计（30 条 / 12 类）
- * 的实测频率排序的：未验证归因 9、数字无出处 5、声称已验证 3、标签误标 3、
- * 结论比证据大 2、自身输出已含反例 2、完整性断言过头 2、假设静默丢弃 1。
+ * The rules were not invented. They are ordered by the observed frequency of
+ * failure in one real session, audited turn by turn on 2026-10-17 (30 instances
+ * across 12 patterns): unverified attribution 9, untraceable numbers 5,
+ * "verified" claimed for something else 3, mislabelled path/target 3,
+ * conclusion bigger than the evidence 2, own output already held the
+ * counter-example 2, completeness overclaimed 2, hypothesis silently dropped 1.
  *
- * 设计约束（为什么长这样）：
- *   - 零 import：不引入模块解析失败面。
- *   - 零 peerDependencies：DSH 会拿声明比对运行时版本；未声明则不施加约束，
- *     因此 DSH 升级后本插件不会被静默跳过（本机 @local/wincu-node-env 即此先例）。
- *   - 零回调：不挂 session/event、turn-stopping、定时器。依据 dsh-app-boot 的启动
- *     失败策略表，同步回调里的未捕获异常属【致命级】——会释放应用并以非零码退出。
- *     本插件因此不具备任何"执行"能力，最坏情况只是不生效。
+ * Design constraints (why it looks like this):
+ *   - Zero imports: no module-resolution failure surface.
+ *   - Zero peerDependencies: DSH compares declared peers against the runtime
+ *     version, so declaring none imposes no constraint and this plugin is never
+ *     silently skipped after a DSH upgrade (@local/wincu-node-env does the same).
+ *   - Zero callbacks: no session/event, turn-stopping or timer handler. Per the
+ *     dsh-app-boot startup-failure table, an uncaught exception in a synchronous
+ *     callback is FATAL - it releases the app and exits non-zero. This plugin
+ *     therefore has no ability to "execute"; its worst case is not taking effect.
  */
 export const name = 'claim-discipline';
 
-/** 依赖 systemPrompt 服务；服务缺失时该行不激活，而不是运行时抛错。 */
+/** Depends on the systemPrompt service; the row stays inactive when it is missing rather than throwing. */
 export const inject = ['systemPrompt'];
 
-/** 段名必须在本层唯一（同层重名会 throw）。前缀 local: 避开仓库保留名。 */
+/** The section name must be unique within its layer (duplicates throw). The local: prefix avoids reserved names. */
 const SECTION_NAME = 'local:claim-discipline';
 
-/** 外部贡献可用任意有限 order；10300 落在 persona suffix(10200) 之后。 */
+/** External contributions may use any finite order; 10300 places it after the persona suffix (10200). */
 const SECTION_ORDER = 10300;
 
+/**
+ * The injected payload. Intentionally Chinese: these are instructions for an
+ * agent that replies in Chinese, so the wording must match the language of the
+ * conversation. README.md carries an English gloss of all seven rules.
+ */
 const TEXT = [
   '【断言纪律】下结论前逐条自查（规则按本机实测出错频率排序）：',
   '1. 归因先摆证据。写"说明/真因是/是X导致的/因果成立"之前，上一句必须是一条本轮的直接观测；没有就降级为「疑似，未验证」。不同时刻读取的值不得拼成一个状态。',
@@ -38,8 +49,9 @@ const TEXT = [
 ].join('\n');
 
 /**
- * 注册常驻提示词段。写法照本机在跑的 dsh-persona/lib/index.js:36-41。
- * @param ctx - 插件上下文。
+ * Register the standing prompt section.
+ * The call shape follows the live dsh-persona/lib/index.js:36-41.
+ * @param ctx - the plugin context.
  */
 function apply(ctx) {
   ctx.effect(() => ctx.systemPrompt.section({

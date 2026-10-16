@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "常驻注入一段「断言纪律」到系统提示词。零依赖、零 peer、零回调、零 IO —— 最坏情况是没生效，不具备让宿主失败的能力。",
+  "description": "Injects a standing claim-discipline section into the DSH system prompt. Zero dependencies, zero peers, zero callbacks, zero I/O - its worst case is not taking effect; it has no ability to make the host fail.",
   "exports": { ".": "./index.js" },
   "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
 }

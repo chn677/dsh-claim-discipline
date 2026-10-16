@@ -1,64 +1,86 @@
 # dsh-claim-discipline
 
-给 DeepSeek Harness (DSH) 用的一段常驻系统提示词：**下结论前的断言纪律**。
+A standing system-prompt section for **DeepSeek Harness (DSH)**: a *claim
+discipline* checklist to run through **before stating a conclusion**.
 
-它不执行任何逻辑，只往系统提示词里注入 7 条自查规则。设计目标是**零风险**：
-零依赖、零 peerDependencies、零回调、零 IO、零定时器。最坏情况是"没生效"，
-它不具备让宿主失败的能力。
+It executes nothing. All it does is inject seven self-check rules into the
+system prompt. The design target is **zero risk**: no dependencies, no
+`peerDependencies`, no callbacks, no I/O, no timers, no state. Its worst case is
+that it does not take effect - it has no ability to make the host fail.
 
-## 规则从哪来
+Chinese documentation: [README.zh.md](README.zh.md).
 
-不是拍脑袋写的。规则按一次真实会话的逐轮审计的频率排序
-（30 条实例 / 12 类模式）：
+## Where the rules come from
 
-| 失败模式 | 次数 |
-|---|---|
-| 未验证归因当结论 | 9 |
-| 数字无出处或单位错 | 5 |
-| 声称"已验证"实为另一件事 | 3 |
-| 标签/路径误标 | 3 |
-| 结论比证据大（丢边界） | 2 |
-| 自己的输出已含反例未回看 | 2 |
-| 完整性/保证断言过头 | 2 |
-| 假设提出后无声丢弃 | 1 |
+They are not invented. They are ordered by the frequency of failure observed in
+a single real session, audited turn by turn (30 instances across 12 patterns):
 
-## 7 条规则
+| Failure pattern | Count |
+| --- | --- |
+| Unverified attribution stated as a conclusion | 9 |
+| Untraceable numbers, or a wrong unit | 5 |
+| "Verified" claimed for something else (incl. circular reasoning; self-report used as evidence) | 3 |
+| Mis-labelled path / target | 3 |
+| Conclusion bigger than the evidence (boundary lost while compressing) | 2 |
+| Own output already contained the counter-example, and was not re-read | 2 |
+| Completeness or guarantee overclaimed | 2 |
+| Hypothesis raised, then silently dropped | 1 |
 
-1. 归因先摆证据。写"说明/真因是/是X导致的/因果成立"之前，上一句必须是一条本轮的直接观测；没有就降级为「疑似，未验证」。不同时刻读取的值不得拼成一个状态。
-2. 数字当场可溯。报数量要附原始值；集合数字必须由同表逐行相加并写出加式；禁止跨时刻相减；MB→GB 一律 /1024。
-3. 结论不许比证据大。结论句里不得出现证据中没有的维度词（都/所有/只有/任何/全部/境外）。
-4. 说"已验证"必须指出判据。要能指出"输出里的哪一行"证明了它；自述不算证据。
-5. 没验证就不许宣称完成。说"已修好/已生效"之前，本轮必须真的跑过那条验证，并读过完整输出与退出码。
-6. 假设必须收口。写了"可能是…我查一下"就必须给出结论句（包括"假设被否"）；宣布过的步骤若不做，显式删掉，不许静默消失。
-7. 先怀疑仪器再怀疑环境。多个目标连"本该成功的对照"一起失败时先查探针；实验必须带一个必通对照和一个必不通对照。
+## The seven rules
 
-## 思路来源（致谢）
+> **The injected payload is Chinese on purpose.** It is a set of instructions for
+> an agent that replies in Chinese, so it must match the language of the
+> conversation. The gloss below is for readers of this repository. To ship an
+> English payload, replace the `TEXT` array in `index.js`.
 
-规则文本为原创措辞，思路受以下公开工作启发：
+1. **Attribution needs evidence first.** Before writing "this means / the root cause is / X caused it / causality established", the preceding sentence must be a direct observation from the current turn. Otherwise downgrade it to "suspected, unverified". Values read at different moments must never be merged into one state.
+2. **Numbers must be traceable on the spot.** Quote the raw value (e.g. `3887.4 MB`). An aggregate must be added up row by row from the same table, with the arithmetic shown. Never subtract across two different moments. MB to GB is always `/1024`.
+3. **The conclusion must not be bigger than the evidence.** A conclusion sentence may not introduce a dimension the evidence does not contain ("all / every / only / any / none / overseas"). When such a word appears, count the rows before writing it.
+4. **"Verified" requires naming the evidence.** You must be able to point at *which line of output* proves it; if you cannot, write "unverified". A self-report ("I only read, I did not write") is not evidence - label it as a self-report.
+5. **No completion claim without verification.** Before saying "fixed / in effect", that verification must actually have been run in this turn, and its full output and exit code read.
+6. **Close every hypothesis.** After writing "possibly ... let me check", a concluding sentence is mandatory - including "the hypothesis was falsified". A step you announced but did not do must be struck out explicitly, never dropped silently.
+7. **Suspect the instrument before the environment.** When several targets fail together - including a control that should have succeeded - check the probe first. Every experiment carries one must-pass control and one must-fail control. Before reporting a path or a label, print the real value.
 
-- **verification-before-completion** — 把"未验证就宣称完成"定义为说谎，并配防御话术表与禁用词表。
-  <https://github.com/jagreehal/jagreehal-claude-skills>
-- **CoVe / Chain-of-Verification** (arXiv:2309.11495) — 起草→核查问题→隔离作答→重写。本插件只取"强制自查"的静态部分，未采用其多轮编排（见下）。
-- **FActScore** (arXiv:2305.14251) — 把长文拆成原子事实逐条核验，正是"压缩成结论时失真"的可测化。
+## Provenance / acknowledgements
 
-## 为什么不做机械化二次校验
+The rule texts are original wording. The ideas were informed by:
 
-CoVe 那类"再跑一轮验证"需要 DSH 的 `agent/turn-stopping` + `agent.steer`
-在答复已产出后强制续跑。那会引入**一个会执行的回调**（DSH 对同步回调里未捕获
-异常的策略是释放应用并非零码退出）**并让每轮多一次模型调用**。本插件选择不承担
-这两个代价。
+- **verification-before-completion** - it defines claiming completion without
+  verification as lying, and pairs that with a counter-argument table and a
+  banned-words list. <https://github.com/jagreehal/jagreehal-claude-skills>
+- **CoVe / Chain-of-Verification** (arXiv:2309.11495) - draft, generate
+  verification questions, answer them in isolation, rewrite. This plugin takes
+  only the static "force a self-check" half; it does not implement the
+  multi-round loop (see below).
+- **FActScore** (arXiv:2305.14251) - decompose a long answer into atomic facts
+  and check each one, which is precisely the measurable form of "distortion
+  while compressing into a conclusion".
 
-## 安装（DSH）
+## Why there is no mechanical second pass
 
-    plugin_manager  action=install_bundle  target=<本目录绝对路径>
+A CoVe-style "run one more verification round" would need DSH's
+`agent/turn-stopping` plus `agent.steer` to force another step *after* the reply
+has already been produced. That would add **an executing callback** (DSH's
+policy for an uncaught exception in a synchronous callback is to release the app
+and exit non-zero) **and one extra model call per turn**. This plugin declines
+both costs.
 
-装好后它是一条 `insert` 行，没有 `config`。卸载 / 停用：
+## Install (DSH)
+
+    plugin_manager  action=install_bundle  target=<absolute path to this directory>
+
+Once installed it is a single `insert` row with no `config`. To disable it:
 
     plugin_manager  action=set_bundle  target=@local/dsh-claim-discipline  enabled=false
 
-## 自检
+## Self-check
 
     node verify.mjs
+
+It asserts that exactly one effect and one section are registered, that the order
+is finite, that all seven rules are present, and that the payload contains no
+`{{...}}` group (a section is variable-interpolated by default, so braces would
+be substituted).
 
 ## License
 
