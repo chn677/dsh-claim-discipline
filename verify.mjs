@@ -25,11 +25,12 @@ assert.equal(s.name, 'local:claim-discipline', 'section name');
 assert.ok(Number.isFinite(s.order), 'order must be finite');
 assert.equal(typeof s.text, 'string', 'text must be a string');
 assert.ok(s.text.length > 100, 'text must be non-trivial');
-['1.', '2.', '3.', '4.', '5.', '6.', '7.'].forEach((n) => {
+['1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.'].forEach((n) => {
   assert.ok(s.text.includes(n), 'missing rule ' + n);
 });
 // Sections are variable-interpolated by default, so a {{...}} group would be
 // substituted - this payload must stay literal.
 assert.ok(!s.text.includes('{{'), 'text must not contain interpolation braces');
+assert.ok(s.text.includes('元认知'), 'meta-case block present');
 
-console.log('verify OK: 1 section, order=' + s.order + ', ' + s.text.length + ' chars, 7 rules');
+console.log('verify OK: 1 section, order=' + s.order + ', ' + s.text.length + ' chars, 8 rules + meta case');

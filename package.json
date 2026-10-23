@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-claim-discipline",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Injects a standing claim-discipline section into the DSH system prompt. Zero dependencies, zero peers, zero callbacks, zero I/O - its worst case is not taking effect; it has no ability to make the host fail.",

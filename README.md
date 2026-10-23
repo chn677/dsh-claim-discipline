@@ -3,8 +3,8 @@
 A standing system-prompt section for **DeepSeek Harness (DSH)**: a *claim
 discipline* checklist to run through **before stating a conclusion**.
 
-It executes nothing. All it does is inject seven self-check rules into the
-system prompt. The design target is **zero risk**: no dependencies, no
+It executes nothing. All it does is inject eight self-check rules (plus one
+meta-case block) into the system prompt. The design target is **zero risk**: no dependencies, no
 `peerDependencies`, no callbacks, no I/O, no timers, no state. Its worst case is
 that it does not take effect - it has no ability to make the host fail.
 
@@ -26,7 +26,7 @@ a single real session, audited turn by turn (30 instances across 12 patterns):
 | Completeness or guarantee overclaimed | 2 |
 | Hypothesis raised, then silently dropped | 1 |
 
-## The seven rules
+## The eight rules
 
 > **The injected payload is Chinese on purpose.** It is a set of instructions for
 > an agent that replies in Chinese, so it must match the language of the
@@ -40,6 +40,11 @@ a single real session, audited turn by turn (30 instances across 12 patterns):
 5. **No completion claim without verification.** Before saying "fixed / in effect", that verification must actually have been run in this turn, and its full output and exit code read.
 6. **Close every hypothesis.** After writing "possibly ... let me check", a concluding sentence is mandatory - including "the hypothesis was falsified". A step you announced but did not do must be struck out explicitly, never dropped silently.
 7. **Suspect the instrument before the environment.** When several targets fail together - including a control that should have succeeded - check the probe first. Every experiment carries one must-pass control and one must-fail control. Before reporting a path or a label, print the real value.
+8. **A description is not behaviour.** Comments, log lines, READMEs, UI hints and a tool's own "go set it over there" text are only *someone wrote this* - never behaviour evidence. To claim a switch or a field is "in effect / pins the behaviour / changed what happens", first read the line of code that actually reads it (grep the field and classify every hit: schema / default / write-clamp / log gate / real branch), and show one observable output on each side of the change. If it only appears in prose, the only defensible conclusion is "it currently affects the wording, nothing else".
+
+### Meta note: why rule 8 exists
+
+On 2026-10-23 the same pattern fired twice in one evening. (a) A plugin log said *fill in "whose DMs to reply to" under Advanced*; I repeated it as fact - the frontend never contains that field (0 occurrences) and no such input exists. (b) A code comment described a priority order ("explicit UID -> ..."); I concluded that writing that field had pinned the behaviour, while the function returns `dmUid` first and never reads it - the only real effect was that one log line stopped repeating. In both cases the sole evidence was a line of prose, yet the conclusion claimed a runtime change. The fix is mechanical: demote the prose to a hint, read the branch that actually consumes the value, and take one observable reading on each side.
 
 ## Provenance / acknowledgements
 
@@ -78,7 +83,7 @@ Once installed it is a single `insert` row with no `config`. To disable it:
     node verify.mjs
 
 It asserts that exactly one effect and one section are registered, that the order
-is finite, that all seven rules are present, and that the payload contains no
+is finite, that all eight rules and the meta-case block are present, and that the payload contains no
 `{{...}}` group (a section is variable-interpolated by default, so braces would
 be substituted).
 
